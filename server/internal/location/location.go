@@ -21,7 +21,6 @@ func JST() *time.Location {
 	if jstLocation != nil {
 		return jstLocation
 	}
-
 	jstLocation = jst()
 
 	return jstLocation
