@@ -1,0 +1,153 @@
+[env]
+MIGRATIONS_DIR = "internal/database/migrations"
+_.file = "../.env"
+
+[tools]
+go = "1.26.4"
+"go:github.com/go-delve/delve/cmd/dlv" = "v1.25.2"
+"go:github.com/golang-migrate/migrate/v4/cmd/migrate" = { version = "v4.18.3", tags = "mysql" }
+"go:go.uber.org/mock/mockgen" = "v0.6.0"
+"go:xorm.io/reverse" = "v0.1.3"
+golangci-lint = "2.12.2"
+gotestsum = "v1.13.0"
+java = "26.0.1"
+oapi-codegen = "v2.7.1"
+schemacrawler = "17.11.4"
+
+[tasks.default]
+description = "APIサーバを実行する"
+run = "go run ./internal/cmd/server/"
+
+[tasks.run]
+description = "指定のコマンドを実行"
+run = "go run ./internal/cmd/${usage_cmd}/"
+usage = '''
+arg "cmd"
+'''
+
+[tasks.lint]
+description = "モジュール全体に golangci-lint を実行する"
+run = "golangci-lint run ./..."
+
+[tasks."lint:fix"]
+description = "golangci-lint を実行し、自動修正可能な指摘を修正する"
+run = "golangci-lint run --fix ./..."
+
+[tasks.fmt]
+description = "フォーマッタ(gofmt + goimports)でコードを整形する"
+run = "golangci-lint fmt ./..."
+
+[tasks."fmt:check"]
+description = "整形せずスタイルのみ検査し、未整形があればエラーにする"
+run = "golangci-lint fmt --diff ./..."
+
+[tasks.test]
+depends = ["test:unit"]
+description = "単体テストを実行する"
+
+[tasks."test:ci"]
+description = "CI向けにJUnitレポート付きで単体テストを実行する"
+run = "gotestsum --format pkgname --junitfile test-results.xml -- -race -cover ./..."
+
+[tasks."test:unit"]
+description = "gotestsumでrace detectorとカバレッジ付きで単体テストを実行する"
+run = "gotestsum --format pkgname -- -race -cover ./..."
+
+[tasks."test:integration"]
+description = "gotestsumでrace detectorとカバレッジ付きで結合テストを実行する"
+run = "gotestsum --format pkgname -- -p 1 -race -cover -tags=integration ./..."
+
+[tasks.build]
+description = "全パッケージをビルドする"
+run = "go build ./..."
+
+[tasks.get]
+description = "外部パッケージをインストールする"
+run = "go get ${usage_pkg}"
+usage = '''
+arg "pkg"
+'''
+
+[tasks.tidy]
+description = "go.mod / go.sum をソースと同期する"
+run = "go mod tidy"
+
+[tasks.seeder]
+description = "SQLシードを実行する"
+run = "go run ./internal/cmd/seeder/ internal/database/seed/"
+
+[tasks."db:er"]
+description = "SchemaCrawlerを使用してデータベースのER図をMermaid形式で出力する"
+run = [
+  "mkdir -p docs",
+  '''"$(mise where schemacrawler)/bin/schemacrawler.sh" --server=mysql --host="${DB_HOST}" --port="${DB_PORT}" --database="${DB_NAME}" --user="${DB_USERNAME}" --password="${DB_PASSWORD}" --tables="^(?!.*\\.schema_migrations$).*" --info-level=standard --command=script --script="$(mise where schemacrawler)/mermaid.py" --script-language=python --output-file=docs/er-diagram.mmd''',
+]
+
+[tasks.check]
+depends = ["fmt:check", "lint", "test"]
+description = "スタイル検査・lint・テストをまとめて実行する(CI 用エントリポイント)"
+
+[tasks.tool-install]
+description = "`mise`管理ツールのインストール"
+run = "mise install"
+
+[tasks."gen:openapi"]
+description = "oapi-codegenを使用してOpenAPI定義からサーバコードを生成する"
+run = [
+  "rm -f /app/restapi/gen/*.go",
+  "oapi-codegen -config openapi-config.yaml /docs/openapi/spec.yaml",
+]
+
+[tasks."gen:mock"]
+description = "mockgenでgomockのmockを生成する"
+run = "go generate ./internal/mock"
+
+[tasks."migrate:create"]
+description = "新しいマイグレーションファイル(up/down)を生成する"
+run = 'migrate create -ext sql -dir ${MIGRATIONS_DIR} -format "20060102150405" ${usage_name}'
+usage = '''
+arg "name" help="マイグレーション名(例: create_product_table)"
+'''
+
+[tasks."migrate:up"]
+description = "未適用のマイグレーションをすべて適用する"
+run = "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} up"
+
+[tasks."migrate:down"]
+description = "直近のマイグレーションを1つロールバックする"
+run = "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} down ${usage_version}"
+usage = '''
+arg "version" help="ロールバックするバージョン番号"
+'''
+
+[tasks."migrate:down-all"]
+description = "全マイグレーションをロールバックする"
+run = "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} down -all"
+
+[tasks."db:drop"]
+description = "データベース削除"
+run = "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} drop -f"
+
+[tasks."migrate:version"]
+description = "現在適用済みのマイグレーションバージョンを表示する"
+run = "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} version"
+
+[tasks."migrate:force"]
+description = "マイグレーションのdirtyフラグを解消し、指定バージョンを強制設定する"
+run = "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} force ${usage_version}"
+usage = '''
+arg "version" help="強制的に設定するバージョン番号"
+'''
+
+[tasks."migrate:reset"]
+description = "データベースを削除し、マイグレーションを再実行する"
+run = [
+  "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} drop -f",
+  "migrate -path ${MIGRATIONS_DIR} -database ${DATABASE_URL} up",
+]
+
+[tasks."gen:db-schema"]
+run = [
+  "rm ./internal/database/gen/*.go",
+  "reverse -f ./tool/reverse/config.yaml",
+]

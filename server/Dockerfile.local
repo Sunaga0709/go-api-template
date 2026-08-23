@@ -1,0 +1,34 @@
+ARG UBUNTU_VERSION=24.04
+
+FROM ubuntu:${UBUNTU_VERSION} AS development
+
+ENV CGO_ENABLED=1 \
+  GO111MODULE=on \
+  GOPATH=/go \
+  GOCACHE=/go/cache/build \
+  GOMODCACHE=/go/cache/mod \
+  MISE_DATA_DIR=/mise \
+  MISE_CACHE_DIR=/mise/cache \
+  MISE_YES=1 \
+  PATH=/mise/shims:/go/bin:${PATH}
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  build-essential \
+  ca-certificates \
+  curl \
+  extrepo \
+  git \
+  make \
+  tzdata \
+  && extrepo enable mise \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends mise \
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p "${GOPATH}" "${GOCACHE}" "${GOMODCACHE}"
+
+COPY mise.toml go.mod go.sum ./
+RUN mise install && go mod download
+
+COPY . .
