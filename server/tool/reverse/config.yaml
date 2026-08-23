@@ -1,0 +1,17 @@
+kind: reverse
+name: schema-generator
+
+source:
+  database: mysql
+  conn_str: "dbuser:dbpass@tcp(db:3306)/go-api-template?parseTime=true"
+
+targets:
+  - type: codes
+    language: golang
+    template_path: ./tool/reverse/schema.go.tpl
+    output_dir: ./internal/database/gen
+    multiple_files: true
+    table_name: true
+    ext_name: .go
+    exclude_tables:
+      - schema_migrations

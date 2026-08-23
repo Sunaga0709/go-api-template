@@ -1,0 +1,534 @@
+openapi: 3.0.3
+info:
+  title: go-api-template
+  version: 0.1.0
+servers:
+  - url: http://localhost:{port}
+    description: Local development server
+    variables:
+      port:
+        default: "8080"
+        description: SERVER_PORT
+tags:
+  - name: Health
+    description: Service health endpoints
+  - name: Customer
+    description: 顧客リソース
+  - name: Book
+    description: 書籍リソース
+  - name: FavoriteBook
+    description: お気に入りの書籍リソース
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check service health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v1/customers:
+    get:
+      tags:
+        - Customer
+      summary: List customer
+      operationId: getV1Customers
+      parameters:
+        - in: query
+          name: count
+          required: false
+          description: 取得件数
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          required: false
+          description: オフセット
+          schema:
+            type: integer
+        - in: query
+          name: order
+          required: false
+          description: ソート
+          schema:
+            $ref: "#/components/schemas/Order"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetV1CustomersResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+        - Customer
+      summary: Create customer
+      operationId: postV1Customers
+      requestBody:
+        $ref: "#/components/requestBodies/PostV1CustomersRequestBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/PostV1CustomersResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v1/customers/{customerId}:
+    get:
+      tags:
+        - Customer
+      summary: Get customer
+      operationId: getV1CustomersCustomerId
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: 顧客ID
+        - in: query
+          name: count
+          required: false
+          description: お気に入りの書籍の取得件数
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          required: false
+          description: お気に入りの書籍のオフセット
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/GetV1CustomersCustomerIdResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags:
+        - Customer
+      summary: Update customer
+      operationId: putV1CustomersCustomerId
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: 顧客ID
+      requestBody:
+        $ref: "#/components/requestBodies/PutV1CustomersCustomerIdRequestBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/PutV1CustomersCustomerIdResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v1/customers/{customerId}/favorite-books:
+    post:
+      tags:
+        - Customer
+        - FavoriteBook
+      summary: 書籍をお気に入りの書籍に登録
+      operationId: PostV1CustomersCustomerIdFavoriteBooks
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: 顧客ID
+      requestBody:
+        $ref: "#/components/requestBodies/PostV1CustomersCustomerIdFavoriteBooksRequestBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/PostV1CustomersCustomerIdFavoriteBooksResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags:
+        - Customer
+        - FavoriteBook
+      summary: お気に入りの書籍の登録解除
+      operationId: putV1CustomersCustomerIdFavoriteBooks
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: 顧客ID
+      requestBody:
+        $ref: "#/components/requestBodies/PutV1CustomersCustomerIdFavoriteBooksRequestBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/PutV1CustomersCustomerIdFavoriteBooksResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v1/books:
+    get:
+      tags:
+        - Book
+      summary: List book
+      operationId: getV1Books
+      responses:
+        "200":
+          $ref: "#/components/responses/GetV1BooksResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  schemas:
+    EmptyObject:
+      description: 空オブジェクト
+      type: object
+      properties: {}
+      additionalProperties: false
+      x-go-type: struct{}
+
+    Order:
+      description: ソート順
+      type: string
+      enum:
+        - asc
+        - desc
+      x-enum-varnames:
+        - OrderAsc
+        - OrderDesc
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: ok
+
+    Customer:
+      type: object
+      additionalProperties: false
+      required:
+        - customerId
+        - nickname
+        - birthday
+        - location
+      properties:
+        customerId:
+          type: string
+          example: 019f0866-5d9e-7c53-a3ee-f39fbd967ac4
+        nickname:
+          type: string
+          example: たろう
+        birthday:
+          type: string
+          example: "2000-01-23"
+        location:
+          type: string
+          example: "Asia/Tokyo"
+
+    Book:
+      type: object
+      additionalProperties: false
+      required:
+        - bookId
+        - title
+        - summary
+        - author
+        - price
+        - publicationDate
+      properties:
+        bookId:
+          type: string
+          description: "書籍ID"
+          example: 019ef097-4931-7c91-ac71-8b8862b3e9d9
+        title:
+          type: string
+          description: "書籍名"
+          example: "初めてのGo言語"
+        summary:
+          type: string
+          description: "書籍要約"
+          example: "Go言語の全体像をバランスよく解説する定番入門書の改訂版。"
+        author:
+          type: string
+          description: "著者"
+          example: "山田太郎"
+        price:
+          type: integer
+          minimum: 0
+          description: 価格（円）
+          example: 298
+          x-go-type: uint
+        publicationDate:
+          type: string
+          format: date
+          description: 発刊日
+          example: "2026-01-02"
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: error code
+          example: 500
+        message:
+          type: string
+          description: error message
+          example: server error
+
+  requestBodies:
+    PostV1CustomersRequestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EmptyObject"
+
+    PutV1CustomersCustomerIdRequestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - nickname
+              - birthday
+              - location
+            properties:
+              nickname:
+                type: string
+                description: ニックネーム
+                example: たろう
+              birthday:
+                type: string
+                description: 生年月日
+                example: 2000-01-23
+              location:
+                type: string
+                description: ロケーション
+                example: "Asia/Tokyo"
+
+    PostV1CustomersCustomerIdFavoriteBooksRequestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - bookId
+            properties:
+              bookId:
+                type: string
+                description: 書籍ID
+                example: 019ef097-4931-7c91-ac71-8b8862b3e9d9
+
+    PutV1CustomersCustomerIdFavoriteBooksRequestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - bookId
+            properties:
+              bookId:
+                type: string
+                description: 登録解除する書籍ID
+                example: 019ef097-4931-7c91-ac71-8b8862b3e9d9
+
+  responses:
+    GetV1CustomersResponse:
+      description: 顧客リスト取得APIレスポンス
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - customers
+            properties:
+              customers:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+
+    GetV1CustomersCustomerIdResponse:
+      description: 顧客詳細取得APIレスポンス
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - customerId
+              - nickname
+              - birthday
+              - location
+              - favoriteBooks
+            properties:
+              customerId:
+                type: string
+                example: 019f0866-5d9e-7c53-a3ee-f39fbd967ac4
+              nickname:
+                type: string
+                example: たろう
+              birthday:
+                type: string
+                example: "1998-01-23"
+              location:
+                type: string
+                example: "Asia/Tokyo"
+              favoriteBooks:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+
+    PostV1CustomersResponse:
+      description: 顧客登録APIレスポンス
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - customerId
+            properties:
+              customerId:
+                type: string
+                description: 顧客ID
+                example: 019f0866-5d9e-7c53-a3ee-f39fbd967ac4
+
+    PutV1CustomersCustomerIdResponse:
+      description: 顧客情報更新APIレスポンス
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EmptyObject"
+
+    PostV1CustomersCustomerIdFavoriteBooksResponse:
+      description: 書籍をお気に入りの書籍に登録APIレスポンス
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EmptyObject"
+
+    PutV1CustomersCustomerIdFavoriteBooksResponse:
+      description: お気に入りの書籍の登録解除APIレスポンス
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EmptyObject"
+
+    GetV1BooksResponse:
+      description: 書籍リスト取得APIレスポンス
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - books
+            properties:
+              books:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: bad_request
+              message: Invalid request.
+
+    Unauthorized:
+      description: Authentication is required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: unauthorized
+              message: Authentication is required.
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: not_found
+              message: Resource not found.
+
+    Conflict:
+      description: Conflict resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: conflict
+              message: Conflict resource.
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: internal_server_error
+              message: Internal server error.
+
+    ServiceUnavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: service_unavailable
+              message: Service unavailable.

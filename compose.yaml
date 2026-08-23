@@ -1,0 +1,47 @@
+---
+services:
+  server:
+    container_name: ${SERVER_HOST}
+    build:
+      context: server/
+      dockerfile: Dockerfile.local
+    env_file: .env
+    volumes:
+      - ./server:/app
+      - ./docs/openapi:/docs/openapi:ro
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    tty: true
+    stdin_open: true
+
+  db:
+    container_name: ${DB_HOST}
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    platform: linux/arm64
+    ports:
+      - ${DB_PORT}:3306
+    volumes:
+      - db:/var/lib/mysql
+
+  db-test:
+    container_name: ${TEST_DB_HOST}
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: ${TEST_DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${TEST_DB_ROOT_PASSWORD}
+      MYSQL_USER: ${TEST_DB_USERNAME}
+      MYSQL_PASSWORD: ${TEST_DB_PASSWORD}
+    platform: linux/arm64
+    ports:
+      - ${TEST_DB_PORT}:3306
+    volumes:
+      - db-test:/var/lib/mysql
+
+volumes:
+  db:
+  db-test:

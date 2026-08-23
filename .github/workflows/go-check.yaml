@@ -1,0 +1,59 @@
+name: Go checks
+
+on:
+  pull_request:
+    paths:
+      - 'server/**/*.go'
+  push:
+    branches:
+      - main
+    paths:
+      - 'server/**/*.go'
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  check:
+    name: Format, lint, and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up mise
+        uses: jdx/mise-action@v3
+
+      - name: Install server tools
+        run: mise install
+
+      - name: Check formatting
+        run: mise run fmt:check
+
+      - name: Run linter
+        run: mise run lint
+
+      - name: Run unit tests
+        run: mise run test:ci
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Unit test results
+          path: server/test-results.xml
+          reporter: java-junit
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: server/test-results.xml
+          if-no-files-found: warn

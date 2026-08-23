@@ -1,0 +1,14 @@
+[env]
+SERVER_SERVICE = "server"
+_.file = ".env"
+
+[tasks.server]
+description = "`server`コンテナ内で`mise`タスクを実行する"
+run = "docker compose exec ${SERVER_SERVICE} mise run ${usage_cmd}"
+usage = '''
+arg "<cmd>..." help="`server`コンテナ内で実行する`mise`タスク"
+'''
+
+[tasks.server-sh]
+description = "`server`コンテナ内で`mise`環境を有効化して`bash`操作"
+run = "docker compose exec ${SERVER_SERVICE} mise exec -- /bin/bash"
