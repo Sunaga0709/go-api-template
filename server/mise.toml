@@ -16,11 +16,11 @@ schemacrawler = "17.11.4"
 
 [tasks.default]
 description = "APIサーバを実行する"
-run = "go run ./internal/cmd/server/"
+run = "go run ./cmd/server/"
 
 [tasks.run]
 description = "指定のコマンドを実行"
-run = "go run ./internal/cmd/${usage_cmd}/"
+run = "go run ./cmd/${usage_cmd}/"
 usage = '''
 arg "cmd"
 '''
@@ -74,7 +74,7 @@ run = "go mod tidy"
 
 [tasks.seeder]
 description = "SQLシードを実行する"
-run = "go run ./internal/cmd/seeder/ internal/database/seed/"
+run = "go run ./cmd/seeder/ internal/database/seed/"
 
 [tasks."db:er"]
 description = "SchemaCrawlerを使用してデータベースのER図をMermaid形式で出力する"
